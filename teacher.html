@@ -83,6 +83,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         승인 관리 <span id="navBadge" class="hidden ml-auto bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center"></span>
       </div>
+      <div onclick="showPage('counsel')" class="nav-item" data-page="counsel">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        상담하기
+      </div>
+      <div onclick="showPage('records')" class="nav-item" data-page="records">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        상담록
+      </div>
       <div onclick="showPage('email')" class="nav-item" data-page="email">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
         학부모 이메일
@@ -200,6 +208,69 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
 
       <!-- Email -->
+      <!-- Counsel -->
+      <div id="pageCounsel" class="page hidden fade-in">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">상담하기</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">상담 대상 선택</h3>
+            <select id="counselSelect" onchange="onCounselSelect()" class="w-full px-3 py-2.5 border rounded-lg text-sm bg-white mb-3">
+              <option value="">승인된 예약을 선택하세요</option>
+            </select>
+            <div id="counselInfo" class="hidden bg-blue-50 rounded-lg p-3 text-sm space-y-1">
+              <div class="flex justify-between"><span class="text-gray-500">학생</span><span id="cslStudent" class="font-medium"></span></div>
+              <div class="flex justify-between"><span class="text-gray-500">날짜/시간</span><span id="cslTime" class="font-medium"></span></div>
+              <div id="cslTopicWrap" class="hidden"><div class="flex justify-between"><span class="text-gray-500">상담내용</span><span id="cslTopic" class="font-medium"></span></div></div>
+            </div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">녹음</h3>
+            <div class="flex items-center gap-3 mb-3">
+              <button onclick="toggleRec()" id="recBtn" class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition">
+                <div id="recIcon" class="w-4 h-4 bg-red-500 rounded-full"></div>
+              </button>
+              <div>
+                <div id="recTime" class="text-lg font-mono text-gray-800">00:00</div>
+                <div id="recStatus" class="text-xs text-gray-400">녹음 대기</div>
+              </div>
+            </div>
+            <div id="recPreview" class="hidden mb-3">
+              <audio id="recPlayer" controls class="w-full h-8"></audio>
+            </div>
+            <div class="text-xs text-gray-400 mb-2">또는 파일 업로드</div>
+            <input type="file" id="audioFile" accept="audio/*" onchange="handleAudioFile(this)" class="text-xs">
+            <div id="uploadPreview" class="hidden mt-2">
+              <audio id="uploadPlayer" controls class="w-full h-8"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="card p-4 mt-4">
+          <h3 class="text-sm font-semibold mb-2">상담 메모</h3>
+          <textarea id="counselMemo" rows="5" placeholder="상담 내용을 기록하세요..."
+            class="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          <div class="flex justify-end mt-3">
+            <button onclick="saveCounseling()" class="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700">상담 완료</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Records -->
+      <div id="pageRecords" class="page hidden fade-in">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">상담록</h2>
+        <div class="card p-4 mb-4">
+          <div class="flex gap-3 items-end">
+            <div><label class="text-xs text-gray-500">학번</label><input id="recSearchSid" type="text" placeholder="학번" class="w-24 px-2 py-1.5 border rounded text-xs mt-0.5"></div>
+            <div><label class="text-xs text-gray-500">시작일</label><input id="recSearchStart" type="date" class="px-2 py-1.5 border rounded text-xs mt-0.5"></div>
+            <div><label class="text-xs text-gray-500">종료일</label><input id="recSearchEnd" type="date" class="px-2 py-1.5 border rounded text-xs mt-0.5"></div>
+            <button onclick="searchRecords()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700">검색</button>
+            <button onclick="loadRecords()" class="border border-gray-300 text-gray-600 px-3 py-1.5 rounded text-xs hover:bg-gray-50">전체</button>
+            <button onclick="exportCSV()" class="border border-gray-300 text-gray-600 px-3 py-1.5 rounded text-xs hover:bg-gray-50">CSV 내보내기</button>
+          </div>
+        </div>
+        <div id="recordsList" class="space-y-2"></div>
+        <div id="noRecords" class="hidden text-center py-8 text-gray-400 text-sm">상담 기록이 없습니다</div>
+      </div>
+
       <div id="pageEmail" class="page hidden fade-in">
         <h2 class="text-lg font-bold text-gray-800 mb-4">학부모 이메일 현황</h2>
         <div class="card p-4">
@@ -439,6 +510,8 @@ function showPage(name) {
   if(name==='dashboard') loadDashboard();
   if(name==='slots') { loadAllSlots(); renderCal(); }
   if(name==='approve') loadApprove();
+  if(name==='counsel') loadCounselPage();
+  if(name==='records') loadRecords();
   if(name==='email') loadEmailPage();
   if(name==='settings') loadSettings();
 }
@@ -764,6 +837,187 @@ async function rejectRes(id, parentEmail, studentName) {
   loading(false);
   toast('취소 완료 (학부모에게 알림 발송)');
   loadApprove();
+}
+
+// === Counsel ===
+let mediaRecorder=null, audioChunks=[], recTimer=null, recSeconds=0, recBlob=null, uploadBlob=null;
+
+async function loadCounselPage() {
+  const slots = await sbGet(`pc_slots?teacher_id=eq.${teacher.id}&select=*,reservation:pc_reservations(*,student:pc_students(student_id,name,class_num))&order=slot_date,start_time`);
+  const approved = slots.flatMap(s=>(s.reservation||[]).filter(r=>r.status==='승인').map(r=>({...r,slot:s})));
+  const sel=document.getElementById('counselSelect');
+  sel.innerHTML='<option value="">승인된 예약을 선택하세요</option>';
+  const today=new Date().toISOString().split('T')[0];
+  approved.sort((a,b)=>{
+    const aToday=a.slot.slot_date===today?0:1, bToday=b.slot.slot_date===today?0:1;
+    return aToday-bToday||a.slot.slot_date.localeCompare(b.slot.slot_date)||a.slot.start_time.localeCompare(b.slot.start_time);
+  });
+  approved.forEach(r=>{
+    const d=new Date(r.slot.slot_date+'T00:00:00');
+    const o=document.createElement('option'); o.value=r.id;
+    o.textContent=`${d.getMonth()+1}/${d.getDate()}(${DAY_MAP[d.getDay()]}) ${r.slot.start_time.slice(0,5)} - ${r.student?.class_num||''}반 ${r.student?.name||''}`;
+    o.dataset.sname=r.student?.name||''; o.dataset.sid=r.student?.student_id||''; o.dataset.suid=r.student_id;
+    o.dataset.cnum=r.student?.class_num||''; o.dataset.date=r.slot.slot_date;
+    o.dataset.time=`${r.slot.start_time.slice(0,5)}~${r.slot.end_time.slice(0,5)}`;
+    o.dataset.topic=r.topic||'';
+    sel.appendChild(o);
+  });
+  document.getElementById('counselInfo').classList.add('hidden');
+  document.getElementById('counselMemo').value='';
+  document.getElementById('recPreview').classList.add('hidden');
+  document.getElementById('uploadPreview').classList.add('hidden');
+  recBlob=null; uploadBlob=null;
+}
+
+function onCounselSelect() {
+  const sel=document.getElementById('counselSelect');
+  const opt=sel.options[sel.selectedIndex];
+  if(!sel.value){document.getElementById('counselInfo').classList.add('hidden');return;}
+  document.getElementById('counselInfo').classList.remove('hidden');
+  document.getElementById('cslStudent').textContent=`${opt.dataset.cnum}반 ${opt.dataset.sname} (${opt.dataset.sid})`;
+  document.getElementById('cslTime').textContent=`${opt.dataset.date} ${opt.dataset.time}`;
+  if(opt.dataset.topic){document.getElementById('cslTopicWrap').classList.remove('hidden');document.getElementById('cslTopic').textContent=opt.dataset.topic;}
+  else{document.getElementById('cslTopicWrap').classList.add('hidden');}
+}
+
+function toggleRec() {
+  if(mediaRecorder&&mediaRecorder.state==='recording') stopRec();
+  else startRec();
+}
+
+async function startRec() {
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks=[];
+    mediaRecorder=new MediaRecorder(stream,{mimeType:'audio/webm'});
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.onstop=()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      recBlob=new Blob(audioChunks,{type:'audio/webm'});
+      document.getElementById('recPlayer').src=URL.createObjectURL(recBlob);
+      document.getElementById('recPreview').classList.remove('hidden');
+    };
+    mediaRecorder.start();
+    recSeconds=0;
+    document.getElementById('recBtn').classList.add('bg-red-100');
+    document.getElementById('recIcon').classList.add('animate-pulse');
+    document.getElementById('recStatus').textContent='녹음 중...';
+    recTimer=setInterval(()=>{
+      recSeconds++;
+      const m=String(Math.floor(recSeconds/60)).padStart(2,'0'), s=String(recSeconds%60).padStart(2,'0');
+      document.getElementById('recTime').textContent=`${m}:${s}`;
+    },1000);
+  }catch(e){toast('마이크 접근이 거부되었습니다');}
+}
+
+function stopRec() {
+  if(mediaRecorder&&mediaRecorder.state==='recording') mediaRecorder.stop();
+  clearInterval(recTimer);
+  document.getElementById('recBtn').classList.remove('bg-red-100');
+  document.getElementById('recIcon').classList.remove('animate-pulse');
+  document.getElementById('recStatus').textContent='녹음 완료';
+}
+
+function handleAudioFile(inp) {
+  const f=inp.files[0]; if(!f||!f.type.startsWith('audio/'))return;
+  uploadBlob=f;
+  document.getElementById('uploadPlayer').src=URL.createObjectURL(f);
+  document.getElementById('uploadPreview').classList.remove('hidden');
+}
+
+async function uploadAudio(blob, name) {
+  const ext=blob.type.includes('webm')?'webm':blob.name?.split('.').pop()||'webm';
+  const fileName=`${name}_${Date.now()}.${ext}`;
+  const r=await fetch(`${SB}/storage/v1/object/counseling-audio/${fileName}`,{
+    method:'POST', headers:{...H,'Content-Type':blob.type}, body:blob
+  });
+  if(!r.ok) return null;
+  return `${SB}/storage/v1/object/public/counseling-audio/${fileName}`;
+}
+
+async function saveCounseling() {
+  const sel=document.getElementById('counselSelect');
+  if(!sel.value){toast('상담 대상을 선택하세요');return;}
+  const memo=document.getElementById('counselMemo').value.trim();
+  const audioBlob=recBlob||uploadBlob;
+  if(!memo&&!audioBlob){toast('메모 또는 녹음을 입력하세요');return;}
+  const opt=sel.options[sel.selectedIndex];
+  loading(true);
+  let audioUrl='';
+  if(audioBlob){
+    const url=await uploadAudio(audioBlob,opt.dataset.sid);
+    if(url) audioUrl=url;
+  }
+  await sbPost('pc_counseling_records',{
+    reservation_id:sel.value, teacher_id:teacher.id, student_id:opt.dataset.suid,
+    student_name:opt.dataset.sname, slot_date:opt.dataset.date, memo, audio_url:audioUrl||null
+  });
+  await sbPatch(`pc_reservations?id=eq.${sel.value}`,{status:'완료'});
+  loading(false);
+  toast('상담이 완료되었습니다');
+  loadCounselPage();
+}
+
+// === Records ===
+let allRecords=[];
+
+async function loadRecords() {
+  allRecords=await sbGet(`pc_counseling_records?teacher_id=eq.${teacher.id}&order=slot_date.desc,created_at.desc`);
+  renderRecords();
+}
+
+async function searchRecords() {
+  const sid=document.getElementById('recSearchSid').value.trim();
+  const sd=document.getElementById('recSearchStart').value;
+  const ed=document.getElementById('recSearchEnd').value;
+  let q=`pc_counseling_records?teacher_id=eq.${teacher.id}&order=slot_date.desc`;
+  if(sid){
+    const students=await sbGet(`pc_students?student_id=eq.${sid}&select=id`);
+    if(students.length) q+=`&student_id=eq.${students[0].id}`;
+  }
+  if(sd) q+=`&slot_date=gte.${sd}`;
+  if(ed) q+=`&slot_date=lte.${ed}`;
+  allRecords=await sbGet(q);
+  renderRecords();
+}
+
+function renderRecords() {
+  const el=document.getElementById('recordsList'), empty=document.getElementById('noRecords');
+  if(!allRecords.length){el.innerHTML='';empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+  el.innerHTML=allRecords.map((r,i)=>{
+    const d=new Date(r.slot_date+'T00:00:00');
+    const memoPreview=(r.memo||'').split('\n')[0].slice(0,60);
+    return `<div class="card p-3 cursor-pointer hover:bg-gray-50 transition" onclick="document.getElementById('rec-exp-${i}').classList.toggle('hidden')">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium">${r.student_name||''}</span>
+          <span class="text-xs text-gray-400">${d.getMonth()+1}/${d.getDate()}(${DAY_MAP[d.getDay()]})</span>
+        </div>
+        ${r.audio_url?'<span class="text-xs text-blue-500">🎙</span>':''}
+      </div>
+      ${memoPreview?`<div class="text-xs text-gray-500 mt-1 truncate">${memoPreview}</div>`:''}
+      <div id="rec-exp-${i}" class="hidden mt-3 pt-3 border-t text-sm">
+        <div class="whitespace-pre-wrap text-gray-700 mb-2">${r.memo||'(메모 없음)'}</div>
+        ${r.audio_url?`<a href="${r.audio_url}" target="_blank" class="text-xs text-blue-600 hover:underline">🎙 오디오 파일 열기</a>`:''}
+        <div class="text-xs text-gray-400 mt-1">기록일: ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportCSV() {
+  if(!allRecords.length){toast('내보낼 데이터가 없습니다');return;}
+  let csv='\uFEFF날짜,학생이름,메모,오디오URL,기록일\n';
+  allRecords.forEach(r=>{
+    const memo=(r.memo||'').replace(/"/g,'""');
+    csv+=`${r.slot_date},"${r.student_name||''}","${memo}","${r.audio_url||''}","${new Date(r.created_at).toLocaleString('ko-KR')}"\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`상담록_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
 }
 
 // === Email ===
