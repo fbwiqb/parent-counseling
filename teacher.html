@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학부모 상담 - 교사용</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+.nav-item { transition: all .15s; }
+.nav-item:hover { background: #EFF6FF; }
+.nav-item.active { background: #DBEAFE; color: #1D4ED8; font-weight: 600; }
+.fade-in { animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.period-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+.period-free { background: #D1FAE5; color: #065F46; }
+.period-busy { background: #FEE2E2; color: #991B1B; }
+</style>
+</head>
+<body class="bg-gray-100">
+
+<!-- Login -->
+<div id="loginOverlay" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-lg p-8 w-80">
+    <h1 class="text-xl font-bold text-center text-gray-800 mb-1">학부모 상담 관리</h1>
+    <p class="text-sm text-gray-500 text-center mb-6">교사 로그인</p>
+    <div class="space-y-3">
+      <div>
+        <label class="text-sm text-gray-600">선생님 이름</label>
+        <select id="loginName" class="w-full mt-1 px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">선택하세요</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">PIN</label>
+        <input id="loginPin" type="password" maxlength="10" placeholder="PIN 입력"
+          class="w-full mt-1 px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700">로그인</button>
+      <div id="loginError" class="hidden text-red-500 text-sm text-center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div id="mainApp" class="hidden flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-56 bg-white border-r flex flex-col flex-shrink-0">
+    <div class="p-4 border-b">
+      <div class="font-bold text-gray-800 text-sm">학부모 상담</div>
+      <div class="text-xs text-gray-500 mt-0.5"><span id="sideTeacher"></span> (<span id="sideClass"></span>)</div>
+    </div>
+    <nav class="flex-1 p-2 space-y-0.5">
+      <button onclick="showPage('dashboard')" class="nav-item active w-full text-left px-3 py-2 rounded-lg text-sm" data-page="dashboard">대시보드</button>
+      <button onclick="showPage('slots')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-sm" data-page="slots">슬롯 관리</button>
+      <button onclick="showPage('reservations')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-sm" data-page="reservations">예약 현황</button>
+      <button onclick="showPage('email')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-sm" data-page="email">이메일 발송</button>
+      <button onclick="showPage('settings')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-sm" data-page="settings">설정</button>
+    </nav>
+    <div class="p-2 border-t">
+      <button onclick="logout()" class="w-full text-left px-3 py-2 text-sm text-gray-500 hover:text-red-500 rounded-lg">로그아웃</button>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <main class="flex-1 p-6 overflow-y-auto">
+    <!-- Dashboard -->
+    <div id="pageDashboard" class="page fade-in">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">대시보드</h2>
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg p-4 border"><div class="text-2xl font-bold text-blue-600" id="statSlots">0</div><div class="text-xs text-gray-500 mt-1">총 슬롯</div></div>
+        <div class="bg-white rounded-lg p-4 border"><div class="text-2xl font-bold text-green-600" id="statBooked">0</div><div class="text-xs text-gray-500 mt-1">예약됨</div></div>
+        <div class="bg-white rounded-lg p-4 border"><div class="text-2xl font-bold text-gray-400" id="statAvail">0</div><div class="text-xs text-gray-500 mt-1">남은 슬롯</div></div>
+      </div>
+      <div class="bg-white rounded-lg p-4 border">
+        <h3 class="font-semibold text-sm mb-3">예약 현황 요약</h3>
+        <div id="dashSummary" class="text-sm text-gray-600">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- Slots -->
+    <div id="pageSlots" class="page hidden fade-in">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">슬롯 관리</h2>
+      <div class="bg-white rounded-lg p-4 border mb-4">
+        <h3 class="font-semibold text-sm mb-3">상담 슬롯 생성</h3>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-xs text-gray-600">시작일</label>
+            <input id="slotDateStart" type="date" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="text-xs text-gray-600">종료일</label>
+            <input id="slotDateEnd" type="date" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+          </div>
+        </div>
+        <button onclick="previewSlots()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">공강 확인 및 미리보기</button>
+      </div>
+
+      <div id="slotPreview" class="hidden bg-white rounded-lg p-4 border mb-4">
+        <h3 class="font-semibold text-sm mb-3">슬롯 미리보기</h3>
+        <div id="previewContent"></div>
+        <button onclick="generateSlots()" class="mt-3 bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">슬롯 생성</button>
+      </div>
+
+      <div class="bg-white rounded-lg p-4 border">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-semibold text-sm">현재 슬롯 목록</h3>
+          <button onclick="loadExistingSlots()" class="text-xs text-blue-600 hover:underline">새로고침</button>
+        </div>
+        <div id="existingSlots" class="text-sm text-gray-600">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- Reservations -->
+    <div id="pageReservations" class="page hidden fade-in">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">예약 현황</h2>
+      <div class="bg-white rounded-lg border overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50"><tr>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">날짜</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">시간</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">학생</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">학부모 이메일</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">상태</th>
+          </tr></thead>
+          <tbody id="resTableBody"></tbody>
+        </table>
+        <div id="noResTeacher" class="hidden text-center py-6 text-gray-400 text-sm">예약 내역이 없습니다</div>
+      </div>
+    </div>
+
+    <!-- Email -->
+    <div id="pageEmail" class="page hidden fade-in">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">이메일 발송</h2>
+      <div class="bg-white rounded-lg p-4 border mb-4">
+        <h3 class="font-semibold text-sm mb-3">학부모 일괄 안내 메일</h3>
+        <p class="text-xs text-gray-500 mb-3">우리 반 학부모 이메일이 등록된 학생에게 상담 예약 안내 메일을 발송합니다.</p>
+        <div id="emailStats" class="text-sm mb-3"></div>
+        <div class="mb-3">
+          <label class="text-xs text-gray-600">예약 페이지 URL</label>
+          <input id="bookingUrl" type="text" placeholder="https://your-domain.com/parent.html"
+            class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+        </div>
+        <button onclick="sendBulkEmail()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">안내 메일 발송</button>
+      </div>
+      <div class="bg-white rounded-lg p-4 border">
+        <h3 class="font-semibold text-sm mb-3">학부모 이메일 현황</h3>
+        <div id="parentEmails" class="text-sm"></div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="pageSettings" class="page hidden fade-in">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">설정</h2>
+      <div class="bg-white rounded-lg p-4 border mb-4">
+        <h3 class="font-semibold text-sm mb-3">PIN 변경</h3>
+        <div class="flex gap-2">
+          <input id="newPin" type="password" placeholder="새 PIN" class="px-3 py-2 border rounded-lg text-sm w-48">
+          <button onclick="changePin()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">변경</button>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg p-4 border">
+        <h3 class="font-semibold text-sm mb-3">내 시간표</h3>
+        <div id="myTimetable" class="text-sm"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg hidden z-50"></div>
+<div id="loadingOverlay" class="fixed inset-0 bg-white/60 flex items-center justify-center z-40 hidden">
+  <div class="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+</div>
+
+<script>
+const SB_URL = 'https://ntgpabdgdzwheoykftou.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50Z3BhYmRnZHp3aGVveWtmdG91Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NDE4ODAsImV4cCI6MjA4NDAxNzg4MH0.KY7xGYJJJg7oqoKxKgjecqktrIMnvfLP5QFJgK428rQ';
+const HEADERS = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
+const EDGE_URL = `${SB_URL}/functions/v1/send-email`;
+
+const PERIOD_TIMES = {
+  '1':  { start: '08:40', end: '09:30' },
+  '2':  { start: '09:40', end: '10:30' },
+  '3':  { start: '10:40', end: '11:30' },
+  '4A': { start: '11:40', end: '12:30' },
+  '4B': { start: '12:30', end: '13:20' },
+  '5':  { start: '13:30', end: '14:20' },
+  '6':  { start: '14:30', end: '15:20' },
+};
+const ALL_PERIODS = ['1','2','3','4A','4B','5','6'];
+const DAY_MAP = { 0:'일',1:'월',2:'화',3:'수',4:'목',5:'금',6:'토' };
+const SLOT_DURATION = 20;
+
+let teacher = null;
+let timetable = [];
+let previewData = [];
+
+async function sbGet(p) { return (await fetch(`${SB_URL}/rest/v1/${p}`, { headers: HEADERS })).json(); }
+async function sbPost(p, b) { return (await fetch(`${SB_URL}/rest/v1/${p}`, { method:'POST', headers:{...HEADERS,'Content-Type':'application/json','Prefer':'return=representation'}, body:JSON.stringify(b) })).json(); }
+async function sbPatch(p, b) { return (await fetch(`${SB_URL}/rest/v1/${p}`, { method:'PATCH', headers:{...HEADERS,'Content-Type':'application/json','Prefer':'return=representation'}, body:JSON.stringify(b) })).json(); }
+async function sbDelete(p) { return fetch(`${SB_URL}/rest/v1/${p}`, { method:'DELETE', headers:HEADERS }); }
+async function sbRpc(fn, b) { return (await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method:'POST', headers:{...HEADERS,'Content-Type':'application/json'}, body:JSON.stringify(b) })).json(); }
+
+function showLoading(v) { document.getElementById('loadingOverlay').classList.toggle('hidden', !v); }
+function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),2500); }
+
+// Login
+(async function initLogin() {
+  const teachers = await sbGet('pc_teachers_public?order=class_name');
+  const sel = document.getElementById('loginName');
+  teachers.forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = `${t.name} (${t.class_name})`; sel.appendChild(o); });
+
+  const saved = localStorage.getItem('pc_teacher');
+  if (saved) {
+    teacher = JSON.parse(saved);
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    onLoginSuccess();
+  }
+})();
+
+async function login() {
+  const name = document.getElementById('loginName').value;
+  const pin = document.getElementById('loginPin').value;
+  if (!name || !pin) { document.getElementById('loginError').textContent = '이름과 PIN을 입력하세요'; document.getElementById('loginError').classList.remove('hidden'); return; }
+
+  showLoading(true);
+  try {
+    const result = await sbRpc('verify_teacher_pin', { p_name: name, p_pin: pin });
+    if (!result || !result.id) { document.getElementById('loginError').textContent = 'PIN이 일치하지 않습니다'; document.getElementById('loginError').classList.remove('hidden'); return; }
+    teacher = result;
+    localStorage.setItem('pc_teacher', JSON.stringify(teacher));
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    onLoginSuccess();
+  } finally { showLoading(false); }
+}
+
+function logout() {
+  localStorage.removeItem('pc_teacher');
+  teacher = null;
+  location.reload();
+}
+
+async function onLoginSuccess() {
+  document.getElementById('sideTeacher').textContent = teacher.name;
+  document.getElementById('sideClass').textContent = teacher.class_name;
+  timetable = await sbGet(`pc_timetable?teacher_name=eq.${encodeURIComponent(teacher.name)}`);
+  loadDashboard();
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageId = 'page' + name.charAt(0).toUpperCase() + name.slice(1);
+  document.getElementById(pageId).classList.remove('hidden');
+  document.querySelector(`[data-page="${name}"]`).classList.add('active');
+
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'slots') loadExistingSlots();
+  if (name === 'reservations') loadReservations();
+  if (name === 'email') loadEmailPage();
+  if (name === 'settings') loadSettings();
+}
+
+// Dashboard
+async function loadDashboard() {
+  const slots = await sbGet(`pc_slots?teacher_id=eq.${teacher.id}&select=*,reservation:pc_reservations(id,status)`);
+  const total = slots.length;
+  const booked = slots.filter(s => s.reservation?.some(r => r.status === '예약')).length;
+  document.getElementById('statSlots').textContent = total;
+  document.getElementById('statBooked').textContent = booked;
+  document.getElementById('statAvail').textContent = total - booked;
+
+  if (!total) { document.getElementById('dashSummary').textContent = '아직 슬롯이 생성되지 않았습니다. "슬롯 관리"에서 상담 시간을 생성하세요.'; return; }
+
+  const grouped = {};
+  slots.forEach(s => {
+    if (!grouped[s.slot_date]) grouped[s.slot_date] = { total: 0, booked: 0 };
+    grouped[s.slot_date].total++;
+    if (s.reservation?.some(r => r.status === '예약')) grouped[s.slot_date].booked++;
+  });
+
+  document.getElementById('dashSummary').innerHTML = Object.keys(grouped).sort().map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    const g = grouped[d];
+    const pct = Math.round(g.booked / g.total * 100);
+    return `<div class="flex items-center justify-between py-1.5 border-b last:border-0">
+      <span>${dt.getMonth()+1}/${dt.getDate()}(${DAY_MAP[dt.getDay()]})</span>
+      <div class="flex items-center gap-2">
+        <div class="w-24 h-2 bg-gray-200 rounded-full"><div class="h-2 bg-blue-500 rounded-full" style="width:${pct}%"></div></div>
+        <span class="text-xs text-gray-500">${g.booked}/${g.total}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Slot Management
+function getFreePeriods(dayName) {
+  const busy = timetable.filter(t => t.day_of_week === dayName).map(t => t.period);
+  return ALL_PERIODS.filter(p => !busy.includes(p));
+}
+
+function generateSlotsForPeriod(period) {
+  const pt = PERIOD_TIMES[period];
+  const [sh, sm] = pt.start.split(':').map(Number);
+  const slots = [];
+  for (let i = 0; i < 2; i++) {
+    const startMin = sh * 60 + sm + i * SLOT_DURATION;
+    const endMin = startMin + SLOT_DURATION;
+    const s = `${String(Math.floor(startMin/60)).padStart(2,'0')}:${String(startMin%60).padStart(2,'0')}`;
+    const e = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
+    slots.push({ start: s, end: e, period });
+  }
+  return slots;
+}
+
+function previewSlots() {
+  const startDate = document.getElementById('slotDateStart').value;
+  const endDate = document.getElementById('slotDateEnd').value;
+  if (!startDate || !endDate) { toast('날짜를 선택하세요'); return; }
+
+  previewData = [];
+  let html = '';
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;
+    const dayName = DAY_MAP[dow];
+    const dateStr = d.toISOString().split('T')[0];
+    const free = getFreePeriods(dayName);
+    const busy = ALL_PERIODS.filter(p => !free.includes(p));
+
+    let daySlots = [];
+    free.forEach(p => {
+      generateSlotsForPeriod(p).forEach(s => {
+        daySlots.push({ ...s, date: dateStr });
+        previewData.push({ date: dateStr, start: s.start, end: s.end });
+      });
+    });
+
+    html += `<div class="mb-3 pb-3 border-b last:border-0">
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="font-medium text-sm">${d.getMonth()+1}/${d.getDate()}(${dayName})</span>
+        <span class="text-xs text-gray-400">${daySlots.length}개 슬롯</span>
+      </div>
+      <div class="mb-1">${ALL_PERIODS.map(p => `<span class="period-tag ${free.includes(p) ? 'period-free' : 'period-busy'}">${p}교시</span>`).join('')}</div>
+      <div class="flex flex-wrap gap-1">${daySlots.map(s => `<span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">${s.start}~${s.end}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  if (!previewData.length) { toast('선택한 기간에 공강이 없습니다'); return; }
+  document.getElementById('previewContent').innerHTML = html;
+  document.getElementById('slotPreview').classList.remove('hidden');
+}
+
+async function generateSlots() {
+  if (!previewData.length) return;
+  showLoading(true);
+  try {
+    const rows = previewData.map(s => ({
+      teacher_id: teacher.id, slot_date: s.date, start_time: s.start, end_time: s.end, is_available: true
+    }));
+
+    const batch = 50;
+    let created = 0;
+    for (let i = 0; i < rows.length; i += batch) {
+      const chunk = rows.slice(i, i + batch);
+      const r = await fetch(`${SB_URL}/rest/v1/pc_slots`, {
+        method: 'POST',
+        headers: { ...HEADERS, 'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=merge-duplicates' },
+        body: JSON.stringify(chunk)
+      });
+      if (r.ok) created += chunk.length;
+    }
+
+    toast(`${created}개 슬롯 생성 완료`);
+    document.getElementById('slotPreview').classList.add('hidden');
+    previewData = [];
+    loadExistingSlots();
+  } finally { showLoading(false); }
+}
+
+async function loadExistingSlots() {
+  const slots = await sbGet(`pc_slots?teacher_id=eq.${teacher.id}&order=slot_date,start_time&select=*,reservation:pc_reservations(id,status,parent_email)`);
+
+  if (!slots.length) { document.getElementById('existingSlots').textContent = '생성된 슬롯이 없습니다'; return; }
+
+  const grouped = {};
+  slots.forEach(s => {
+    if (!grouped[s.slot_date]) grouped[s.slot_date] = [];
+    grouped[s.slot_date].push(s);
+  });
+
+  document.getElementById('existingSlots').innerHTML = Object.keys(grouped).sort().map(date => {
+    const d = new Date(date + 'T00:00:00');
+    return `<div class="mb-3 pb-3 border-b">
+      <div class="font-medium text-sm mb-1.5">${d.getMonth()+1}/${d.getDate()}(${DAY_MAP[d.getDay()]})</div>
+      <div class="flex flex-wrap gap-1.5">${grouped[date].map(s => {
+        const booked = s.reservation?.some(r => r.status === '예약');
+        const cls = booked ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200';
+        return `<span class="text-xs px-2 py-1 rounded border ${cls}">${s.start_time.slice(0,5)}~${s.end_time.slice(0,5)} ${booked ? '(예약됨)' : ''}</span>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// Reservations
+async function loadReservations() {
+  const slots = await sbGet(`pc_slots?teacher_id=eq.${teacher.id}&select=*,reservation:pc_reservations(*,student:pc_students(student_id,name,class_num))&order=slot_date,start_time`);
+
+  const reservations = slots.flatMap(s =>
+    (s.reservation || []).filter(r => r.status === '예약').map(r => ({ ...r, slot: s }))
+  );
+
+  const tbody = document.getElementById('resTableBody');
+  const noRes = document.getElementById('noResTeacher');
+
+  if (!reservations.length) { tbody.innerHTML = ''; noRes.classList.remove('hidden'); return; }
+  noRes.classList.add('hidden');
+
+  tbody.innerHTML = reservations.map(r => {
+    const d = new Date(r.slot.slot_date + 'T00:00:00');
+    return `<tr class="border-b hover:bg-gray-50">
+      <td class="px-4 py-2.5">${d.getMonth()+1}/${d.getDate()}(${DAY_MAP[d.getDay()]})</td>
+      <td class="px-4 py-2.5">${r.slot.start_time.slice(0,5)}~${r.slot.end_time.slice(0,5)}</td>
+      <td class="px-4 py-2.5">${r.student?.class_num || ''}반 ${r.student?.name || ''}</td>
+      <td class="px-4 py-2.5 text-gray-500">${r.parent_email}</td>
+      <td class="px-4 py-2.5"><span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">${r.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// Email
+async function loadEmailPage() {
+  const students = await sbGet(`pc_students?teacher_id=eq.${teacher.id}&order=number`);
+  const withEmail = students.filter(s => s.parent_email);
+  const noEmail = students.filter(s => !s.parent_email);
+
+  document.getElementById('emailStats').innerHTML = `
+    <span class="text-green-600 font-medium">${withEmail.length}명</span> 이메일 등록 /
+    <span class="text-red-500">${noEmail.length}명</span> 미등록 (총 ${students.length}명)`;
+
+  document.getElementById('parentEmails').innerHTML = `
+    <table class="w-full text-xs"><thead class="bg-gray-50"><tr>
+      <th class="px-2 py-1.5 text-left">번호</th><th class="px-2 py-1.5 text-left">이름</th><th class="px-2 py-1.5 text-left">이메일</th>
+    </tr></thead><tbody>${students.map(s => `<tr class="border-b">
+      <td class="px-2 py-1.5">${s.number}</td>
+      <td class="px-2 py-1.5">${s.name}</td>
+      <td class="px-2 py-1.5 ${s.parent_email ? 'text-gray-700' : 'text-gray-300'}">${s.parent_email || '미등록'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function sendBulkEmail() {
+  const url = document.getElementById('bookingUrl').value.trim();
+  if (!url) { toast('예약 페이지 URL을 입력하세요'); return; }
+
+  const students = await sbGet(`pc_students?teacher_id=eq.${teacher.id}&parent_email=not.is.null`);
+  const emails = students.filter(s => s.parent_email).map(s => s.parent_email);
+
+  if (!emails.length) { toast('이메일이 등록된 학부모가 없습니다'); return; }
+  if (!confirm(`${emails.length}명에게 안내 메일을 발송하시겠습니까?`)) return;
+
+  showLoading(true);
+  try {
+    let sent = 0;
+    for (const s of students.filter(s => s.parent_email)) {
+      await fetch(EDGE_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: s.parent_email,
+          subject: `[충남삼성고] ${teacher.class_name} 학부모 상담 예약 안내`,
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px">
+            <h2 style="color:#1e40af">학부모 상담 예약 안내</h2>
+            <p>${s.name} 학생 학부모님 안녕하세요.</p>
+            <p>${teacher.class_name} 담임교사 ${teacher.name}입니다.</p>
+            <p>학부모 상담 예약이 가능합니다. 아래 링크에서 원하시는 시간을 선택해주세요.</p>
+            <p style="margin:20px 0"><a href="${url}" style="background:#2563eb;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">상담 예약하기</a></p>
+            <p style="color:#6b7280;font-size:14px">학번: ${s.student_id} / 이름: ${s.name}</p>
+            <p style="color:#9ca3af;font-size:12px;margin-top:20px">충남삼성고등학교 학부모 상담 예약 시스템</p></div>`
+        })
+      });
+      sent++;
+    }
+    toast(`${sent}명에게 메일 발송 완료`);
+  } finally { showLoading(false); }
+}
+
+// Settings
+async function loadSettings() {
+  const days = ['월','화','수','목','금'];
+  let html = '<table class="w-full text-xs border-collapse"><thead><tr><th class="border px-2 py-1.5 bg-gray-50">교시</th>';
+  days.forEach(d => html += `<th class="border px-2 py-1.5 bg-gray-50 w-16">${d}</th>`);
+  html += '</tr></thead><tbody>';
+
+  ALL_PERIODS.forEach(p => {
+    html += `<tr><td class="border px-2 py-1.5 font-medium bg-gray-50">${p}교시<br><span class="text-gray-400 font-normal">${PERIOD_TIMES[p].start}~${PERIOD_TIMES[p].end}</span></td>`;
+    days.forEach(d => {
+      const entry = timetable.find(t => t.day_of_week === d && t.period === p);
+      if (entry) {
+        html += `<td class="border px-1.5 py-1 bg-red-50 text-red-700 text-center">${entry.subject.slice(0,8)}</td>`;
+      } else {
+        html += `<td class="border px-1.5 py-1 bg-green-50 text-green-700 text-center">공강</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('myTimetable').innerHTML = html;
+}
+
+async function changePin() {
+  const pin = document.getElementById('newPin').value;
+  if (!pin) { toast('PIN을 입력하세요'); return; }
+  await sbPatch(`pc_teachers?id=eq.${teacher.id}`, { pin });
+  toast('PIN이 변경되었습니다');
+  document.getElementById('newPin').value = '';
+}
+
+document.getElementById('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>
