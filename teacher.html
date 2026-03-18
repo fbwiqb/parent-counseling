@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학부모 상담 - 교사용</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 <style>
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; }
 .sidebar { width: 240px; }
@@ -216,6 +218,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             </div>
           </div>
           <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Google 캘린더 연동</h3>
+            <div id="gcalStatus" class="text-sm mb-3"></div>
+            <button onclick="connectGCal()" id="btnGcal" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">캘린더 연동하기</button>
+          </div>
+          <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">교사 정보</h3>
             <div class="text-sm space-y-1">
               <div class="flex justify-between"><span class="text-gray-500">이름</span><span id="setName" class="font-medium"></span></div>
@@ -272,6 +279,10 @@ const DAY_MAP = {0:'일',1:'월',2:'화',3:'수',4:'목',5:'금',6:'토'};
 let teacher = null, timetable = [], allSlots = [];
 let calYear, calMonth, selectedDate = null;
 
+const GCAL_CLIENT_ID = '531153922940-n1s86oo1sllv944c4uahg2m9vvbnehut.apps.googleusercontent.com';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
+let tokenClient = null, gcalReady = false, gcalId = null;
+
 async function sbGet(p) { return (await fetch(`${SB}/rest/v1/${p}`, {headers:H})).json(); }
 async function sbPost(p,b) { return (await fetch(`${SB}/rest/v1/${p}`, {method:'POST',headers:{...HJ,'Prefer':'return=representation'},body:JSON.stringify(b)})).json(); }
 async function sbPatch(p,b) { return (await fetch(`${SB}/rest/v1/${p}`, {method:'PATCH',headers:{...HJ,'Prefer':'return=representation'},body:JSON.stringify(b)})).json(); }
@@ -307,7 +318,87 @@ async function enterApp() {
   document.getElementById('sideInfo').textContent = `${teacher.name} (${teacher.class_name})`;
   timetable = await sbGet(`pc_timetable?teacher_name=eq.${encodeURIComponent(teacher.name)}`);
   const now = new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
+  initGCalendar();
   loadDashboard();
+}
+
+function initGCalendar() {
+  gcalId = localStorage.getItem('pc_gcal_id');
+  const waitGapi = setInterval(() => {
+    if (typeof gapi !== 'undefined' && typeof google !== 'undefined' && google.accounts) {
+      clearInterval(waitGapi);
+      gapi.load('client', async () => {
+        await gapi.client.init({});
+        await gapi.client.load('calendar', 'v3');
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GCAL_CLIENT_ID, scope: GCAL_SCOPE,
+          callback: onGCalToken,
+        });
+        const saved = localStorage.getItem('pc_gcal_token');
+        if (saved) { gapi.client.setToken({ access_token: saved }); gcalReady = true; }
+      });
+    }
+  }, 200);
+}
+
+function connectGCal() {
+  if (!tokenClient) { toast('Google API 로딩 중...'); return; }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+async function onGCalToken(resp) {
+  if (resp.error) { toast('Google 인증 실패'); return; }
+  localStorage.setItem('pc_gcal_token', resp.access_token);
+  gapi.client.setToken({ access_token: resp.access_token });
+  gcalReady = true;
+  try {
+    const list = await gapi.client.calendar.calendarList.list();
+    const existing = list.result.items?.find(c => c.summary === '학부모 상담');
+    if (existing) {
+      gcalId = existing.id;
+    } else {
+      const created = await gapi.client.calendar.calendars.insert({
+        resource: { summary: '학부모 상담', description: `${teacher.class_name} 학부모 상담 일정`, timeZone: 'Asia/Seoul' }
+      });
+      gcalId = created.result.id;
+    }
+    localStorage.setItem('pc_gcal_id', gcalId);
+    toast('캘린더 연동 완료 ("학부모 상담" 캘린더 생성됨)');
+    updateGCalStatus();
+  } catch (e) { toast('캘린더 생성 실패: ' + e.message); }
+}
+
+function updateGCalStatus() {
+  const el = document.getElementById('gcalStatus');
+  const btn = document.getElementById('btnGcal');
+  if (gcalReady && gcalId) {
+    el.innerHTML = '<span class="text-green-600 font-medium">연동됨</span> — "학부모 상담" 캘린더에 자동 등록';
+    btn.textContent = '재연동';
+  } else {
+    el.innerHTML = '<span class="text-gray-400">미연동</span> — 승인 시 캘린더 URL로 대체됩니다';
+    btn.textContent = '캘린더 연동하기';
+  }
+}
+
+async function createCalEvent(date, startTime, endTime, studentName) {
+  if (!gcalReady || !gcalId) {
+    window.open(makeCalUrl(date, startTime, endTime, studentName), '_blank');
+    return;
+  }
+  try {
+    await gapi.client.calendar.events.insert({
+      calendarId: gcalId,
+      resource: {
+        summary: `학부모 상담 - ${teacher.class_name} ${studentName}`,
+        location: teacher.classroom || '',
+        description: `${studentName} 학생 학부모 상담\n담임: ${teacher.name}`,
+        start: { dateTime: `${date}T${startTime.slice(0,5)}:00`, timeZone: 'Asia/Seoul' },
+        end: { dateTime: `${date}T${endTime.slice(0,5)}:00`, timeZone: 'Asia/Seoul' },
+      }
+    });
+  } catch (e) {
+    window.open(makeCalUrl(date, startTime, endTime, studentName), '_blank');
+  }
 }
 
 function showPage(name) {
@@ -615,8 +706,8 @@ async function approveRes(id, date, start, end, studentName, parentEmail) {
       })});
   }catch(e){}
   loading(false);
+  await createCalEvent(date,start,end,studentName);
   toast('승인 완료');
-  window.open(makeCalUrl(date,start,end,studentName),'_blank');
   loadApprove();
 }
 
@@ -639,6 +730,7 @@ async function loadEmailPage() {
 
 // === Settings ===
 function loadSettings() {
+  updateGCalStatus();
   document.getElementById('setName').textContent=teacher.name;
   document.getElementById('setClass').textContent=teacher.class_name;
   document.getElementById('setRoom').textContent=teacher.classroom||'-';
