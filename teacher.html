@@ -243,25 +243,26 @@ const H = { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` };
 const HJ = { ...H, 'Content-Type': 'application/json' };
 
 const PERIOD_TIMES = {
-  '1':  { s:'08:40', e:'09:00', label:'1교시-1' }, '1b': { s:'09:00', e:'09:20', label:'1교시-2' },
-  '2':  { s:'09:40', e:'10:00', label:'2교시-1' }, '2b': { s:'10:00', e:'10:20', label:'2교시-2' },
-  '3':  { s:'10:40', e:'11:00', label:'3교시-1' }, '3b': { s:'11:00', e:'11:20', label:'3교시-2' },
-  '4A': { s:'11:40', e:'12:00', label:'4A교시-1' },'4Ab':{ s:'12:00', e:'12:20', label:'4A교시-2' },
-  '4B': { s:'12:30', e:'12:50', label:'4B교시-1' },'4Bb':{ s:'12:50', e:'13:10', label:'4B교시-2' },
-  '5':  { s:'13:30', e:'13:50', label:'5교시-1' }, '5b': { s:'13:50', e:'14:10', label:'5교시-2' },
-  '6':  { s:'14:30', e:'14:50', label:'6교시-1' }, '6b': { s:'14:50', e:'15:10', label:'6교시-2' },
-  'a1': { s:'15:30', e:'15:50', label:'방과후-1' },'a2': { s:'15:50', e:'16:10', label:'방과후-2' },
-  'a3': { s:'16:10', e:'16:30', label:'방과후-3' },'a4': { s:'16:30', e:'16:50', label:'방과후-4' },
+  '1a': { s:'08:40', e:'09:00' }, '1b': { s:'09:00', e:'09:20' },
+  '2a': { s:'09:40', e:'10:00' }, '2b': { s:'10:00', e:'10:20' },
+  '3a': { s:'10:40', e:'11:00' }, '3b': { s:'11:00', e:'11:20' },
+  '4Aa':{ s:'11:40', e:'12:00' }, '4Ab':{ s:'12:00', e:'12:20' },
+  '4Ba':{ s:'12:30', e:'12:50' }, '4Bb':{ s:'12:50', e:'13:10' },
+  '5a': { s:'13:30', e:'13:50' }, '5b': { s:'13:50', e:'14:10' },
+  '6a': { s:'14:30', e:'14:50' }, '6b': { s:'14:50', e:'15:10' },
+  'af1':{ s:'15:30', e:'15:50' }, 'af2':{ s:'15:50', e:'16:10' }, 'af3':{ s:'16:10', e:'16:30' },
+  'et1':{ s:'16:50', e:'17:10' }, 'et2':{ s:'17:10', e:'17:30' }, 'et3':{ s:'17:30', e:'17:50' }, 'et4':{ s:'17:50', e:'18:10' },
 };
 const PERIOD_GROUPS = [
-  { name: '1교시', keys: ['1','1b'], period: '1' },
-  { name: '2교시', keys: ['2','2b'], period: '2' },
-  { name: '3교시', keys: ['3','3b'], period: '3' },
-  { name: '4A교시', keys: ['4A','4Ab'], period: '4A' },
-  { name: '4B교시', keys: ['4B','4Bb'], period: '4B' },
-  { name: '5교시', keys: ['5','5b'], period: '5' },
-  { name: '6교시', keys: ['6','6b'], period: '6' },
-  { name: '방과후', keys: ['a1','a2','a3','a4'], period: null },
+  { name: '1교시',  keys: ['1a','1b'],  period: '1',  time: '08:40~09:30' },
+  { name: '2교시',  keys: ['2a','2b'],  period: '2',  time: '09:40~10:30' },
+  { name: '3교시',  keys: ['3a','3b'],  period: '3',  time: '10:40~11:30' },
+  { name: '4A교시', keys: ['4Aa','4Ab'],period: '4A', time: '11:40~12:30' },
+  { name: '4B교시', keys: ['4Ba','4Bb'],period: '4B', time: '12:30~13:20' },
+  { name: '5교시',  keys: ['5a','5b'],  period: '5',  time: '13:30~14:20' },
+  { name: '6교시',  keys: ['6a','6b'],  period: '6',  time: '14:30~15:20' },
+  { name: '방과후', keys: ['af1','af2','af3'], period: null, time: '15:30~16:30' },
+  { name: 'ET',     keys: ['et1','et2','et3','et4'], period: null, time: '16:50~18:10' },
 ];
 const DAY_MAP = {0:'일',1:'월',2:'화',3:'수',4:'목',5:'금',6:'토'};
 
@@ -397,7 +398,7 @@ async function selectDate(dateStr) {
     html+=`<div class="border rounded-lg p-2.5 mb-2 ${cls}">
       <div class="flex items-center justify-between mb-1.5">
         <span class="text-xs font-semibold ${isBusy?'text-red-600':'text-gray-700'}">${g.name}
-          <span class="font-normal text-gray-400">${PERIOD_TIMES[g.keys[0]].s}~${PERIOD_TIMES[g.keys[g.keys.length-1]].e}</span>
+          <span class="font-normal text-gray-400">${g.time}</span>
         </span>
         ${isBusy?'<span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">수업</span>':''}
       </div>
@@ -571,15 +572,19 @@ function loadSettings() {
   document.getElementById('setRoom').textContent=teacher.classroom||'-';
 
   const days=['월','화','수','목','금'];
-  const periods=['1','2','3','4A','4B','5','6'];
+  const periodRows=[
+    {name:'1교시',period:'1',time:'08:40~09:30'},{name:'2교시',period:'2',time:'09:40~10:30'},
+    {name:'3교시',period:'3',time:'10:40~11:30'},{name:'4A교시',period:'4A',time:'11:40~12:30'},
+    {name:'4B교시',period:'4B',time:'12:30~13:20'},{name:'5교시',period:'5',time:'13:30~14:20'},
+    {name:'6교시',period:'6',time:'14:30~15:20'},
+  ];
   let h='<table class="w-full text-xs border-collapse"><thead><tr><th class="border px-2 py-1.5 bg-gray-50">교시</th>';
   days.forEach(d=>h+=`<th class="border px-2 py-1.5 bg-gray-50 w-20">${d}</th>`);
   h+='</tr></thead><tbody>';
-  periods.forEach(p=>{
-    const pt=PERIOD_TIMES[p];
-    h+=`<tr><td class="border px-2 py-1.5 bg-gray-50 font-medium">${p}교시<br><span class="text-gray-400 font-normal">${pt.s}~${pt.e.replace(':00',':30').replace(':40',':30')}</span></td>`;
+  periodRows.forEach(pr=>{
+    h+=`<tr><td class="border px-2 py-1.5 bg-gray-50 font-medium">${pr.name}<br><span class="text-gray-400 font-normal">${pr.time}</span></td>`;
     days.forEach(d=>{
-      const e=timetable.find(t=>t.day_of_week===d&&t.period===p);
+      const e=timetable.find(t=>t.day_of_week===d&&t.period===pr.period);
       h+=e?`<td class="border px-1.5 py-1 bg-red-50 text-red-700 text-center">${e.subject.slice(0,10)}</td>`
            :`<td class="border px-1.5 py-1 bg-green-50 text-green-700 text-center">공강</td>`;
     });
