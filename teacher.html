@@ -680,12 +680,13 @@ async function loadApprove() {
           <div class="text-sm font-semibold">${d.getMonth()+1}/${d.getDate()}(${DAY_MAP[d.getDay()]}) ${r.slot.start_time.slice(0,5)}~${r.slot.end_time.slice(0,5)}</div>
           <div class="text-xs text-gray-600 mt-1">${r.student?.class_num||''}반 ${r.student?.name||''}</div>
           <div class="text-xs text-gray-400 mt-0.5">${r.parent_email}</div>
+          ${r.topic?`<div class="text-xs text-gray-500 mt-1.5 bg-gray-50 px-2 py-1 rounded"><span class="text-gray-400">상담내용:</span> ${r.topic}</div>`:''}
         </div>
         <div class="flex items-center gap-2">
           ${isWait?`
             <button onclick="approveRes('${r.id}','${r.slot.slot_date}','${r.slot.start_time}','${r.slot.end_time}','${(r.student?.name||'').replace(/'/g,"\\'")}','${r.parent_email}')"
               class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-700">승인</button>
-            <button onclick="rejectRes('${r.id}')" class="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-300">거절</button>
+            <button onclick="rejectRes('${r.id}','${r.parent_email}','${(r.student?.name||'').replace(/'/g,"\\'")}')" class="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-300">취소</button>
           `:`<span class="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">승인됨</span>`}
         </div>
       </div>
@@ -738,12 +739,27 @@ async function approveRes(id, date, start, end, studentName, parentEmail) {
   loadApprove();
 }
 
-async function rejectRes(id) {
-  if(!confirm('이 예약을 거절하시겠습니까?')) return;
+async function rejectRes(id, parentEmail, studentName) {
+  const reason = prompt('취소 사유를 입력해주세요:');
+  if(reason===null) return;
+  if(!reason.trim()){toast('취소 사유를 입력해주세요');return;}
   loading(true);
-  await sbPatch(`pc_reservations?id=eq.${id}`,{status:'취소',cancelled_at:new Date().toISOString()});
+  await sbPatch(`pc_reservations?id=eq.${id}`,{status:'취소',cancel_reason:reason.trim(),cancelled_at:new Date().toISOString()});
+  try{
+    await fetch(`${SB}/functions/v1/send-email`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:parentEmail,subject:'[충남삼성고] 학부모 상담 예약 취소 안내',
+        html:`<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px">
+          <h2 style="color:#991b1b">학부모 상담 예약이 취소되었습니다</h2>
+          <p>${studentName} 학생 학부모님, 신청하신 상담 예약이 담임교사에 의해 취소되었습니다.</p>
+          <div style="background:#fef2f2;padding:12px;border-radius:8px;margin:16px 0">
+            <p style="margin:0;font-size:14px;color:#991b1b"><strong>취소 사유:</strong> ${reason.trim()}</p>
+          </div>
+          <p style="font-size:14px;color:#6b7280">다른 시간대로 다시 예약하시려면 예약 페이지를 방문해주세요.</p>
+          <p style="color:#9ca3af;font-size:12px;margin-top:16px">충남삼성고등학교 학부모 상담 예약 시스템</p></div>`
+      })});
+  }catch(e){}
   loading(false);
-  toast('거절 완료');
+  toast('취소 완료 (학부모에게 알림 발송)');
   loadApprove();
 }
 
