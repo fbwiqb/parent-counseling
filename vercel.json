@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/teacher", "destination": "/teacher.html" },
+    { "source": "/parent", "destination": "/parent.html" },
+    { "source": "/", "destination": "/parent.html" }
+  ]
+}
