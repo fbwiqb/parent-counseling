@@ -6,13 +6,16 @@
 <title>학부모 상담 예약</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 .slot-btn { transition: all .15s; }
 .slot-btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(59,130,246,.3); }
-.slot-btn.selected { ring: 2px solid #3B82F6; }
 .tab-active { border-bottom: 2px solid #3B82F6; color: #3B82F6; font-weight: 600; }
 .fade-in { animation: fadeIn .3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
+.badge-wait { background: #FEF3C7; color: #92400E; }
+.badge-ok { background: #D1FAE5; color: #065F46; }
+.badge-cancel { background: #FEE2E2; color: #991B1B; }
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -20,7 +23,7 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 <div class="max-w-md mx-auto bg-white min-h-screen shadow-sm">
   <header class="bg-blue-600 text-white px-4 py-5 text-center">
     <h1 class="text-lg font-bold">충남삼성고등학교</h1>
-    <p class="text-blue-100 text-sm mt-1">학부모 상담 예약 시스템</p>
+    <p class="text-blue-100 text-sm mt-1">학부모 상담 예약</p>
   </header>
 
   <nav class="flex border-b">
@@ -29,7 +32,6 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
   </nav>
 
   <main class="p-4">
-    <!-- TAB: 상담 예약 -->
     <div id="panelBook">
       <!-- Step 1: 학생 조회 -->
       <div id="step1" class="fade-in">
@@ -45,9 +47,7 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
             <input id="inpName" type="text" placeholder="예: 홍길동"
               class="w-full mt-1 px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
-          <button onclick="lookupStudent()" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700">
-            조회
-          </button>
+          <button onclick="lookupStudent()" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700">조회</button>
         </div>
         <div id="lookupError" class="hidden mt-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
       </div>
@@ -56,329 +56,204 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
       <div id="step2" class="hidden fade-in">
         <div class="bg-blue-50 rounded-lg p-3 mb-4">
           <div class="flex justify-between items-center">
-            <div>
-              <span id="infoClass" class="text-sm font-medium text-blue-800"></span>
-              <span id="infoName" class="text-sm text-blue-700 ml-1"></span>
-            </div>
+            <div><span id="infoClass" class="text-sm font-medium text-blue-800"></span> <span id="infoName" class="text-sm text-blue-700"></span></div>
             <span class="text-xs text-blue-600">담임: <span id="infoTeacher"></span></span>
           </div>
         </div>
-
         <div class="mb-4">
           <label class="text-sm text-gray-600">학부모 이메일</label>
           <input id="inpEmail" type="email" placeholder="example@email.com"
             class="w-full mt-1 px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-400 mt-1">예약 확인 이메일이 발송됩니다</p>
+          <p class="text-xs text-gray-400 mt-1">예약 접수 및 승인 알림이 발송됩니다</p>
         </div>
-
         <h3 class="font-semibold text-gray-800 mb-2">상담 시간 선택</h3>
         <div id="slotsContainer" class="space-y-3"></div>
-        <div id="noSlots" class="hidden text-center py-8 text-gray-400 text-sm">
-          현재 예약 가능한 시간이 없습니다
-        </div>
-
+        <div id="noSlots" class="hidden text-center py-8 text-gray-400 text-sm">현재 예약 가능한 시간이 없습니다</div>
         <div class="flex gap-2 mt-4">
-          <button onclick="backToStep1()" class="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-lg text-sm hover:bg-gray-50">
-            이전
-          </button>
+          <button onclick="backToStep1()" class="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-lg text-sm hover:bg-gray-50">이전</button>
           <button onclick="confirmBooking()" id="btnBook" disabled
-            class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-blue-700">
-            예약하기
-          </button>
+            class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-blue-700">예약 신청</button>
         </div>
       </div>
 
       <!-- Step 3: 완료 -->
       <div id="step3" class="hidden fade-in text-center py-8">
         <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
+          <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
         </div>
-        <h2 class="text-lg font-bold text-gray-800 mb-2">예약이 완료되었습니다</h2>
+        <h2 class="text-lg font-bold text-gray-800 mb-1">예약 신청 완료</h2>
+        <p class="text-sm text-gray-500 mb-4">담임교사 승인 후 확정 메일이 발송됩니다</p>
         <div id="bookingResult" class="bg-gray-50 rounded-lg p-4 text-left text-sm space-y-2 mx-4 mb-4"></div>
-        <button onclick="resetAll()" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700">
-          새로운 예약
-        </button>
+        <button onclick="resetAll()" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700">새로운 예약</button>
       </div>
     </div>
 
-    <!-- TAB: 예약 확인 -->
     <div id="panelCheck" class="hidden">
       <h2 class="font-semibold text-gray-800 mb-3">내 예약 조회</h2>
       <div class="flex gap-2 mb-4">
         <input id="chkStudentId" type="text" inputmode="numeric" maxlength="5" placeholder="학번"
           class="flex-1 px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button onclick="checkReservations()" class="bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-blue-700">
-          조회
-        </button>
+        <button onclick="checkReservations()" class="bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-blue-700">조회</button>
       </div>
       <div id="reservationsList" class="space-y-3"></div>
-      <div id="noReservations" class="hidden text-center py-8 text-gray-400 text-sm">
-        예약 내역이 없습니다
-      </div>
+      <div id="noReservations" class="hidden text-center py-8 text-gray-400 text-sm">예약 내역이 없습니다</div>
     </div>
   </main>
 
   <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg hidden z-50"></div>
   <div id="loadingOverlay" class="fixed inset-0 bg-white/60 flex items-center justify-center z-40 hidden">
-    <div class="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    <div class="w-8 h-8 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin"></div>
   </div>
 </div>
 
 <script>
-const SB_URL = 'https://ntgpabdgdzwheoykftou.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50Z3BhYmRnZHp3aGVveWtmdG91Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NDE4ODAsImV4cCI6MjA4NDAxNzg4MH0.KY7xGYJJJg7oqoKxKgjecqktrIMnvfLP5QFJgK428rQ';
-const HEADERS = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
-const EDGE_URL = `${SB_URL}/functions/v1/send-email`;
+const SB='https://ntgpabdgdzwheoykftou.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50Z3BhYmRnZHp3aGVveWtmdG91Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NDE4ODAsImV4cCI6MjA4NDAxNzg4MH0.KY7xGYJJJg7oqoKxKgjecqktrIMnvfLP5QFJgK428rQ';
+const H={'apikey':KEY,'Authorization':`Bearer ${KEY}`};
+const EDGE=`${SB}/functions/v1/send-email`;
+const DAY_NAMES=['일','월','화','수','목','금','토'];
+let currentStudent=null, currentTeacher=null, selectedSlotId=null;
 
-let currentStudent = null;
-let currentTeacher = null;
-let selectedSlotId = null;
+async function sbGet(p){return(await fetch(`${SB}/rest/v1/${p}`,{headers:H})).json();}
+async function sbPost(p,b){return(await fetch(`${SB}/rest/v1/${p}`,{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)})).json();}
+async function sbPatch(p,b){return(await fetch(`${SB}/rest/v1/${p}`,{method:'PATCH',headers:{...H,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)})).json();}
+function loading(v){document.getElementById('loadingOverlay').classList.toggle('hidden',!v);}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2500);}
 
-const DAY_NAMES = ['일','월','화','수','목','금','토'];
-
-async function sbGet(path) {
-  const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: HEADERS });
-  return r.json();
+function switchTab(tab){
+  document.getElementById('panelBook').classList.toggle('hidden',tab!=='book');
+  document.getElementById('panelCheck').classList.toggle('hidden',tab!=='check');
+  document.getElementById('tabBook').className=`flex-1 py-3 text-sm text-center ${tab==='book'?'tab-active':'text-gray-500'}`;
+  document.getElementById('tabCheck').className=`flex-1 py-3 text-sm text-center ${tab==='check'?'tab-active':'text-gray-500'}`;
 }
 
-async function sbPost(path, body) {
-  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-    method: 'POST', headers: { ...HEADERS, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-    body: JSON.stringify(body)
-  });
-  return r.json();
-}
-
-async function sbPatch(path, body) {
-  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-    method: 'PATCH', headers: { ...HEADERS, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-    body: JSON.stringify(body)
-  });
-  return r.json();
-}
-
-function showLoading(v) { document.getElementById('loadingOverlay').classList.toggle('hidden', !v); }
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.remove('hidden');
-  setTimeout(() => el.classList.add('hidden'), 2500);
-}
-
-function switchTab(tab) {
-  document.getElementById('panelBook').classList.toggle('hidden', tab !== 'book');
-  document.getElementById('panelCheck').classList.toggle('hidden', tab !== 'check');
-  document.getElementById('tabBook').className = `flex-1 py-3 text-sm text-center ${tab === 'book' ? 'tab-active' : 'text-gray-500'}`;
-  document.getElementById('tabCheck').className = `flex-1 py-3 text-sm text-center ${tab === 'check' ? 'tab-active' : 'text-gray-500'}`;
-}
-
-async function lookupStudent() {
-  const sid = document.getElementById('inpStudentId').value.trim();
-  const name = document.getElementById('inpName').value.trim();
-  const errEl = document.getElementById('lookupError');
-  errEl.classList.add('hidden');
-
-  if (!sid || sid.length !== 5) { errEl.textContent = '학번 5자리를 입력해주세요'; errEl.classList.remove('hidden'); return; }
-  if (!name) { errEl.textContent = '이름을 입력해주세요'; errEl.classList.remove('hidden'); return; }
-
-  showLoading(true);
-  try {
-    const students = await sbGet(`pc_students?student_id=eq.${sid}&name=eq.${encodeURIComponent(name)}&select=*,teacher:pc_teachers_public(*)`);
-    if (!students.length) { errEl.textContent = '학생 정보를 찾을 수 없습니다. 학번과 이름을 확인해주세요.'; errEl.classList.remove('hidden'); return; }
-
-    currentStudent = students[0];
-    currentTeacher = currentStudent.teacher;
-
-    document.getElementById('infoClass').textContent = `3-${currentStudent.class_num}반`;
-    document.getElementById('infoName').textContent = currentStudent.name;
-    document.getElementById('infoTeacher').textContent = currentTeacher?.name || '-';
-    document.getElementById('inpEmail').value = currentStudent.parent_email || '';
-
+async function lookupStudent(){
+  const sid=document.getElementById('inpStudentId').value.trim(), name=document.getElementById('inpName').value.trim();
+  const err=document.getElementById('lookupError'); err.classList.add('hidden');
+  if(!sid||sid.length!==5){err.textContent='학번 5자리를 입력해주세요';err.classList.remove('hidden');return;}
+  if(!name){err.textContent='이름을 입력해주세요';err.classList.remove('hidden');return;}
+  loading(true);
+  try{
+    const r=await sbGet(`pc_students?student_id=eq.${sid}&name=eq.${encodeURIComponent(name)}&select=*,teacher:pc_teachers_public(*)`);
+    if(!r.length){err.textContent='학생 정보를 찾을 수 없습니다';err.classList.remove('hidden');return;}
+    currentStudent=r[0]; currentTeacher=currentStudent.teacher;
+    document.getElementById('infoClass').textContent=`3-${currentStudent.class_num}반`;
+    document.getElementById('infoName').textContent=currentStudent.name;
+    document.getElementById('infoTeacher').textContent=currentTeacher?.name||'-';
+    document.getElementById('inpEmail').value=currentStudent.parent_email||'';
     await loadSlots();
     document.getElementById('step1').classList.add('hidden');
     document.getElementById('step2').classList.remove('hidden');
-  } catch (e) {
-    errEl.textContent = '오류가 발생했습니다'; errEl.classList.remove('hidden');
-  } finally { showLoading(false); }
+  }catch(e){err.textContent='오류가 발생했습니다';err.classList.remove('hidden');}
+  finally{loading(false);}
 }
 
-async function loadSlots() {
-  if (!currentTeacher) return;
-  const today = new Date().toISOString().split('T')[0];
-  const slots = await sbGet(
-    `pc_slots?teacher_id=eq.${currentTeacher.id}&slot_date=gte.${today}&is_available=eq.true&order=slot_date,start_time&select=*,reservation:pc_reservations(id,status)`
-  );
-
-  const available = slots.filter(s => {
-    const res = s.reservation;
-    if (!res || res.length === 0) return true;
-    return !res.some(r => r.status === '예약');
-  });
-
-  const container = document.getElementById('slotsContainer');
-  const noSlots = document.getElementById('noSlots');
-  container.innerHTML = '';
-
-  if (!available.length) { noSlots.classList.remove('hidden'); return; }
+async function loadSlots(){
+  if(!currentTeacher)return;
+  const today=new Date().toISOString().split('T')[0];
+  const slots=await sbGet(`pc_slots?teacher_id=eq.${currentTeacher.id}&slot_date=gte.${today}&is_available=eq.true&order=slot_date,start_time&select=*,reservation:pc_reservations(id,status)`);
+  const available=slots.filter(s=>!s.reservation?.some(r=>r.status==='대기'||r.status==='승인'));
+  const container=document.getElementById('slotsContainer'), noSlots=document.getElementById('noSlots');
+  container.innerHTML='';
+  if(!available.length){noSlots.classList.remove('hidden');return;}
   noSlots.classList.add('hidden');
-
-  const grouped = {};
-  available.forEach(s => {
-    if (!grouped[s.slot_date]) grouped[s.slot_date] = [];
-    grouped[s.slot_date].push(s);
-  });
-
-  Object.keys(grouped).sort().forEach(date => {
-    const d = new Date(date + 'T00:00:00');
-    const dayName = DAY_NAMES[d.getDay()];
-    const dateStr = `${d.getMonth()+1}/${d.getDate()}(${dayName})`;
-
-    const div = document.createElement('div');
-    div.className = 'border rounded-lg p-3';
-    div.innerHTML = `<div class="text-sm font-medium text-gray-700 mb-2">${dateStr}</div>
-      <div class="flex flex-wrap gap-2">${grouped[date].map(s =>
+  const grouped={};
+  available.forEach(s=>{if(!grouped[s.slot_date])grouped[s.slot_date]=[];grouped[s.slot_date].push(s);});
+  Object.keys(grouped).sort().forEach(date=>{
+    const d=new Date(date+'T00:00:00'), dayName=DAY_NAMES[d.getDay()];
+    const div=document.createElement('div'); div.className='border rounded-lg p-3';
+    div.innerHTML=`<div class="text-sm font-medium text-gray-700 mb-2">${d.getMonth()+1}/${d.getDate()}(${dayName})</div>
+      <div class="flex flex-wrap gap-2">${grouped[date].map(s=>
         `<button onclick="selectSlot('${s.id}')" id="slot-${s.id}"
           class="slot-btn px-3 py-1.5 text-xs rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
-          ${s.start_time.slice(0,5)}~${s.end_time.slice(0,5)}
-        </button>`
-      ).join('')}</div>`;
+          ${s.start_time.slice(0,5)}~${s.end_time.slice(0,5)}</button>`).join('')}</div>`;
     container.appendChild(div);
   });
 }
 
-function selectSlot(id) {
-  document.querySelectorAll('.slot-btn').forEach(b => {
-    b.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-    b.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
-  });
-  const el = document.getElementById(`slot-${id}`);
-  el.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-200');
-  el.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
-  selectedSlotId = id;
-  document.getElementById('btnBook').disabled = false;
+function selectSlot(id){
+  document.querySelectorAll('.slot-btn').forEach(b=>{b.classList.remove('bg-blue-600','text-white','border-blue-600');b.classList.add('bg-blue-50','text-blue-700','border-blue-200');});
+  const el=document.getElementById(`slot-${id}`);
+  el.classList.remove('bg-blue-50','text-blue-700','border-blue-200');
+  el.classList.add('bg-blue-600','text-white','border-blue-600');
+  selectedSlotId=id; document.getElementById('btnBook').disabled=false;
 }
 
-async function confirmBooking() {
-  const email = document.getElementById('inpEmail').value.trim();
-  if (!email || !email.includes('@')) { toast('이메일을 입력해주세요'); return; }
-  if (!selectedSlotId) { toast('시간을 선택해주세요'); return; }
-
-  showLoading(true);
-  try {
-    if (email !== currentStudent.parent_email) {
-      await sbPatch(`pc_students?id=eq.${currentStudent.id}`, { parent_email: email });
-    }
-
-    const res = await sbPost('pc_reservations', {
-      slot_id: selectedSlotId, student_id: currentStudent.id, parent_email: email, status: '예약'
-    });
-
-    if (res.code) { toast(res.code === '23505' ? '이미 예약된 시간입니다' : '오류: ' + res.message); return; }
-
-    const booking = Array.isArray(res) ? res[0] : res;
-    const slot = await sbGet(`pc_slots?id=eq.${selectedSlotId}`);
-    const s = slot[0];
-    const d = new Date(s.slot_date + 'T00:00:00');
-
-    document.getElementById('bookingResult').innerHTML = `
+async function confirmBooking(){
+  const email=document.getElementById('inpEmail').value.trim();
+  if(!email||!email.includes('@')){toast('이메일을 입력해주세요');return;}
+  if(!selectedSlotId){toast('시간을 선택해주세요');return;}
+  loading(true);
+  try{
+    if(email!==currentStudent.parent_email) await sbPatch(`pc_students?id=eq.${currentStudent.id}`,{parent_email:email});
+    const res=await sbPost('pc_reservations',{slot_id:selectedSlotId, student_id:currentStudent.id, parent_email:email, status:'대기'});
+    if(res.code){toast(res.code==='23505'?'이미 예약된 시간입니다':'오류: '+res.message);return;}
+    const slot=(await sbGet(`pc_slots?id=eq.${selectedSlotId}`))[0];
+    const d=new Date(slot.slot_date+'T00:00:00');
+    document.getElementById('bookingResult').innerHTML=`
       <div class="flex justify-between"><span class="text-gray-500">담임교사</span><span class="font-medium">${currentTeacher.name}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">학생</span><span class="font-medium">3-${currentStudent.class_num}반 ${currentStudent.name}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">날짜</span><span class="font-medium">${d.getMonth()+1}월 ${d.getDate()}일 (${DAY_NAMES[d.getDay()]})</span></div>
-      <div class="flex justify-between"><span class="text-gray-500">시간</span><span class="font-medium">${s.start_time.slice(0,5)} ~ ${s.end_time.slice(0,5)}</span></div>
-      <div class="flex justify-between"><span class="text-gray-500">이메일</span><span class="font-medium">${email}</span></div>`;
-
+      <div class="flex justify-between"><span class="text-gray-500">시간</span><span class="font-medium">${slot.start_time.slice(0,5)} ~ ${slot.end_time.slice(0,5)}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">상태</span><span class="badge badge-wait">승인 대기</span></div>`;
     document.getElementById('step2').classList.add('hidden');
     document.getElementById('step3').classList.remove('hidden');
-
-    try {
-      await fetch(EDGE_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: email, subject: '[충남삼성고] 학부모 상담 예약 확인',
-          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px">
-            <h2 style="color:#1e40af">학부모 상담 예약 확인</h2>
-            <p>${currentStudent.name} 학생 학부모님, 상담 예약이 완료되었습니다.</p>
-            <table style="width:100%;border-collapse:collapse;margin:16px 0">
-              <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;width:30%">담임교사</td><td style="padding:8px;border:1px solid #e5e7eb">${currentTeacher.name}</td></tr>
-              <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb">날짜</td><td style="padding:8px;border:1px solid #e5e7eb">${d.getMonth()+1}월 ${d.getDate()}일 (${DAY_NAMES[d.getDay()]})</td></tr>
-              <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb">시간</td><td style="padding:8px;border:1px solid #e5e7eb">${s.start_time.slice(0,5)} ~ ${s.end_time.slice(0,5)}</td></tr>
-              <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb">장소</td><td style="padding:8px;border:1px solid #e5e7eb">${currentTeacher.classroom || '추후 안내'}</td></tr>
-            </table>
-            <p style="color:#6b7280;font-size:14px">충남삼성고등학교 학부모 상담 예약 시스템</p></div>`
-        })
-      });
-    } catch(e) {}
-  } catch (e) {
-    toast('예약 중 오류가 발생했습니다');
-  } finally { showLoading(false); }
+    try{await fetch(EDGE,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:email,subject:'[충남삼성고] 학부모 상담 예약 접수',
+        html:`<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px">
+          <h2 style="color:#1e40af">상담 예약이 접수되었습니다</h2>
+          <p>${currentStudent.name} 학생 학부모님, 상담 예약 신청이 접수되었습니다.</p>
+          <p style="color:#92400e;background:#fef3c7;padding:10px;border-radius:8px;font-size:14px">담임교사 승인 후 확정 메일이 발송됩니다.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;width:30%">담임교사</td><td style="padding:8px;border:1px solid #e5e7eb">${currentTeacher.name}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb">날짜</td><td style="padding:8px;border:1px solid #e5e7eb">${d.getMonth()+1}월 ${d.getDate()}일 (${DAY_NAMES[d.getDay()]})</td></tr>
+            <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb">시간</td><td style="padding:8px;border:1px solid #e5e7eb">${slot.start_time.slice(0,5)} ~ ${slot.end_time.slice(0,5)}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb">장소</td><td style="padding:8px;border:1px solid #e5e7eb">${currentTeacher.classroom||'추후 안내'}</td></tr>
+          </table>
+          <p style="color:#6b7280;font-size:13px">충남삼성고등학교 학부모 상담 예약 시스템</p></div>`
+      })});}catch(e){}
+  }catch(e){toast('예약 중 오류가 발생했습니다');}
+  finally{loading(false);}
 }
 
-function backToStep1() {
-  document.getElementById('step2').classList.add('hidden');
-  document.getElementById('step1').classList.remove('hidden');
-  selectedSlotId = null;
-}
+function backToStep1(){document.getElementById('step2').classList.add('hidden');document.getElementById('step1').classList.remove('hidden');selectedSlotId=null;}
+function resetAll(){document.getElementById('step3').classList.add('hidden');document.getElementById('step1').classList.remove('hidden');document.getElementById('inpStudentId').value='';document.getElementById('inpName').value='';currentStudent=null;currentTeacher=null;selectedSlotId=null;}
 
-function resetAll() {
-  document.getElementById('step3').classList.add('hidden');
-  document.getElementById('step1').classList.remove('hidden');
-  document.getElementById('inpStudentId').value = '';
-  document.getElementById('inpName').value = '';
-  currentStudent = null; currentTeacher = null; selectedSlotId = null;
-}
-
-async function checkReservations() {
-  const sid = document.getElementById('chkStudentId').value.trim();
-  if (!sid || sid.length !== 5) { toast('학번 5자리를 입력해주세요'); return; }
-
-  showLoading(true);
-  try {
-    const students = await sbGet(`pc_students?student_id=eq.${sid}&select=id`);
-    if (!students.length) { toast('학생 정보를 찾을 수 없습니다'); return; }
-
-    const reservations = await sbGet(
-      `pc_reservations?student_id=eq.${students[0].id}&status=eq.예약&select=*,slot:pc_slots(*),student:pc_students(name,class_num)&order=created_at.desc`
-    );
-
-    const list = document.getElementById('reservationsList');
-    const noRes = document.getElementById('noReservations');
-    list.innerHTML = '';
-
-    if (!reservations.length) { noRes.classList.remove('hidden'); return; }
+async function checkReservations(){
+  const sid=document.getElementById('chkStudentId').value.trim();
+  if(!sid||sid.length!==5){toast('학번 5자리를 입력해주세요');return;}
+  loading(true);
+  try{
+    const students=await sbGet(`pc_students?student_id=eq.${sid}&select=id`);
+    if(!students.length){toast('학생 정보를 찾을 수 없습니다');return;}
+    const res=await sbGet(`pc_reservations?student_id=eq.${students[0].id}&status=in.(대기,승인)&select=*,slot:pc_slots(*),student:pc_students(name,class_num)&order=created_at.desc`);
+    const list=document.getElementById('reservationsList'), noRes=document.getElementById('noReservations');
+    list.innerHTML='';
+    if(!res.length){noRes.classList.remove('hidden');return;}
     noRes.classList.add('hidden');
-
-    reservations.forEach(r => {
-      const d = new Date(r.slot.slot_date + 'T00:00:00');
-      const dayName = DAY_NAMES[d.getDay()];
-      const div = document.createElement('div');
-      div.className = 'border rounded-lg p-3 fade-in';
-      div.innerHTML = `
-        <div class="flex justify-between items-start mb-2">
-          <div>
-            <div class="font-medium text-sm">${d.getMonth()+1}/${d.getDate()}(${dayName}) ${r.slot.start_time.slice(0,5)}~${r.slot.end_time.slice(0,5)}</div>
-            <div class="text-xs text-gray-500 mt-0.5">3-${r.student.class_num}반 ${r.student.name}</div>
-          </div>
-          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">${r.status}</span>
-        </div>
-        <button onclick="cancelReservation('${r.id}','${r.slot_id}')" class="text-xs text-red-500 hover:text-red-700">예약 취소</button>`;
+    res.forEach(r=>{
+      const d=new Date(r.slot.slot_date+'T00:00:00');
+      const badge=r.status==='승인'?'badge-ok':'badge-wait';
+      const div=document.createElement('div');div.className='border rounded-lg p-3 fade-in';
+      div.innerHTML=`<div class="flex justify-between items-start mb-2">
+        <div><div class="font-medium text-sm">${d.getMonth()+1}/${d.getDate()}(${DAY_NAMES[d.getDay()]}) ${r.slot.start_time.slice(0,5)}~${r.slot.end_time.slice(0,5)}</div>
+          <div class="text-xs text-gray-500 mt-0.5">3-${r.student.class_num}반 ${r.student.name}</div></div>
+        <span class="badge ${badge}">${r.status==='승인'?'승인됨':'승인 대기'}</span></div>
+        ${r.status==='대기'?`<button onclick="cancelRes('${r.id}')" class="text-xs text-red-500 hover:text-red-700">예약 취소</button>`:''}`;
       list.appendChild(div);
     });
-  } finally { showLoading(false); }
+  }finally{loading(false);}
 }
 
-async function cancelReservation(resId, slotId) {
-  if (!confirm('예약을 취소하시겠습니까?')) return;
-  showLoading(true);
-  try {
-    await sbPatch(`pc_reservations?id=eq.${resId}`, { status: '취소', cancelled_at: new Date().toISOString() });
-    toast('예약이 취소되었습니다');
-    checkReservations();
-  } finally { showLoading(false); }
+async function cancelRes(id){
+  if(!confirm('예약을 취소하시겠습니까?'))return;
+  loading(true);
+  await sbPatch(`pc_reservations?id=eq.${id}`,{status:'취소',cancelled_at:new Date().toISOString()});
+  loading(false); toast('예약이 취소되었습니다'); checkReservations();
 }
 
-document.getElementById('inpStudentId').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inpName').focus(); });
-document.getElementById('inpName').addEventListener('keydown', e => { if (e.key === 'Enter') lookupStudent(); });
+document.getElementById('inpStudentId').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('inpName').focus();});
+document.getElementById('inpName').addEventListener('keydown',e=>{if(e.key==='Enter')lookupStudent();});
 </script>
 </body>
 </html>
