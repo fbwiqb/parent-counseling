@@ -213,13 +213,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <h2 class="text-lg font-bold text-gray-800 mb-4">설정</h2>
         <div class="grid grid-cols-2 gap-4">
           <div class="card p-4">
-            <h3 class="text-sm font-semibold mb-3">PIN 변경</h3>
-            <div class="flex gap-2">
-              <input id="newPin" type="password" placeholder="새 PIN" class="flex-1 px-3 py-2 border rounded-lg text-sm">
-              <button onclick="changePin()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">변경</button>
-            </div>
-          </div>
-          <div class="card p-4">
             <h3 class="text-sm font-semibold mb-3">Google 캘린더 연동</h3>
             <div id="gcalStatus" class="text-sm mb-3"></div>
             <button onclick="connectGCal()" id="btnGcal" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">캘린더 연동하기</button>
@@ -792,13 +785,6 @@ function loadSettings() {
   document.getElementById('myTimetable').innerHTML=h;
 }
 
-async function changePin() {
-  const p=document.getElementById('newPin').value;
-  if(!p){toast('PIN을 입력하세요');return;}
-  await sbPatch(`pc_teachers?id=eq.${teacher.id}`,{pin:p});
-  toast('PIN 변경 완료');
-  document.getElementById('newPin').value='';
-}
 
 window.addEventListener('load', () => {
   if (typeof gapi !== 'undefined') {
