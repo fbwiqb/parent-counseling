@@ -320,7 +320,10 @@ async function onGoogleLogin(resp) {
   const info = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${resp.access_token}` } })).json();
   googleUser = info;
 
-  const matched = allTeachers.find(t => t.name === info.name);
+  const gName = info.name.replace(/\s/g,'');
+  const matched = allTeachers.find(t => t.email === info.email)
+    || allTeachers.find(t => t.name === gName)
+    || allTeachers.find(t => gName.includes(t.name) || t.name.includes(gName));
   if (matched) {
     teacher = matched;
     if (!matched.email) await sbPatch(`pc_teachers?id=eq.${matched.id}`, { email: info.email });
